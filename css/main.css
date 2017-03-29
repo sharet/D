@@ -1,0 +1,60 @@
+body {
+    font-family: Arial, serif;
+    color: #222;
+}
+
+a {
+    padding: 0;
+    margin: 0;
+}
+
+.toolbar__logout {
+    float: right;
+}
+
+.index_item {
+    padding-bottom: 1em;
+}
+.index_item_toolbar {
+    float: right;
+}
+
+.index_item__date {
+    color: #666666;
+    font-style: italic;
+    font-size: 0.8em;
+}
+
+.view_toolbar {
+    float: right;
+}
+
+.view_body {
+    padding-bottom: 2em;
+}
+
+.view_date {
+    color: #666666;
+    font-style: italic;
+    font-size: 0.8em;
+}
+
+.tag-list__tag {
+    border: 1px solid #CCCCCC;
+    border-right: 2px solid #CCCCCC;
+    border-bottom: 2px solid #CCCCCC;
+    padding: 0 0.3em 0 0.3em;
+}
+.index_tag-filter {
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
+.entry input {
+    width: 90%;
+}
+
+.entry textarea {
+    width: 90%;
+    height: 50vh;
+}

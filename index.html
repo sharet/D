@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="css/main.css">
+        <meta charset="utf-8">
+        <META content="text/html;charset=utf-8" http-equiv=content-type>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" type="image/png" href="/D/favicon.ico"/>
+    </head>
+    <body>
+        <div class="toolbar" style="display: none">
+            <a class="toolbar__index" href="javascript:nav.go('/')">Index</a>
+            <a class="toolbar__newentry" href="javascript:nav.go('/new')">New entry</a>
+            <a class="toolbar__logout" href="javascript:main.logout()">Logout</a>
+        </div>
+        <div class="main"></div>
+
+        <script type="application/javascript" src="js/mustache.js"></script>
+        <script type="application/javascript" src="js/bcrypt.js"></script>
+        <script type="application/javascript" src="js/crypto-js.js"></script>
+        <script type="application/javascript" src="js/lib.js"></script>
+        <script type="application/javascript" src="js/auth.js"></script>
+        <script type="application/javascript" src="js/nav.js"></script>
+        <script type="application/javascript" src="js/index.js"></script>
+        <script type="application/javascript" src="js/entry.js"></script>
+        <script type="application/javascript" src="js/view.js"></script>
+        <script type="application/javascript" src="js/main.js"></script>
+
+        <script id="t-load-index" type="x-tmpl-mustache">
+            Loading index... {{ count }} items and counting!
+        </script>
+
+        <script id="t-error" type="x-tmpl-mustache">
+            <div class="error">
+                <h3>{{ title }}</h3>
+                {{#errors}}
+                    <p><pre>{{.}}</pre></p>
+                {{/errors}}
+            </div>
+        </script>
+
+        <script id="t-index" type="x-tmpl-mustache">
+            <div class="index">
+                <h3>Index</h3>
+                <button class="index_show-body" onclick="index.showAll()">Show all content</button>
+                <button class="index_reload" onclick="main.reloadIndex()">Reload index</button>
+
+                <div class="index_tag-filter">
+                    <div class="tag-list">
+                        {{#alltags}}
+                            <span class="tag-list__tag"><a href="javascript:index.filterByTag('{{.}}')">{{.}}</a></span>
+                        {{/alltags}}
+                    </div>
+                    {{#tagFilter}}
+                        Filtering by: {{tag}}
+                    {{/tagFilter}}
+                </div>
+                <div class="index_list">
+                {{#index}}
+                    <div class="index_item">
+                        <div>
+                            <a class="index_item__view" href="javascript:nav.go('/view/{{n}}')">{{title}}</a>
+                            <div class="index_item_toolbar">
+                                <a class="index_item__edit" href="javascript:nav.go('/edit/{{n}}')">Edit</a>
+                                <a class="index_item__delete" href="javascript:main.deleteEntry({{n}})">Delete</a>
+                            </div>
+                            <div class="index_item__body" data-n="{{n}}"></div>
+                        </div>
+                        <div class="index_item__date">{{date}}</div>
+                        <div class="index_tags">
+                            <div class="tag-list">
+                                {{#tags}}
+                                    <span class="tag-list__tag">{{.}}</span>
+                                {{/tags}}
+                            </div>
+                        </div>
+
+                    </div>
+                {{/index}}
+                </div>
+            </div>
+        </script>
+
+        <script id="t-entry" type="x-tmpl-mustache">
+            <div class="entry">
+                <h3>{{pageTitle}}</h3>
+                <div class="entry_title">
+                    <span class="entry_title__label">Title:</span>
+                    <input class="entry_title__input" value="{{#attr-escape}}{{title}}{{/attr-escape}}">
+                </div>
+                <div class="entry_tags">
+                    <span class="entry_tags__label">Tags:</span>
+                    <input class="entry_tags__input" value="{{#attr-escape}}{{tags}}{{/attr-escape}}">
+                </div>
+                <div class="tag-list">
+                    {{#knownTags}}
+                    <span class="tag-list__tag">{{.}}</span>
+                    {{/knownTags}}
+                </div>
+                <div class="entry_toolbar">
+                    <button class="entry_toolbar_p" onclick="javascript:entry.onP()">&lt;p&gt;</button>
+                    <button class="entry_toolbar_pre" onclick="javascript:entry.onPre()">&lt;pre&gt;</button>
+                    <button class="entry_toolbar_html" onclick="javascript:entry.onHtmlMode()">HTML mode</button>
+                    <button class="entry_toolbar_txt" onclick="javascript:entry.onTxtMode()">TXT mode</button>
+                </div>
+                <div class="entry_body">
+                    <textarea class="entry_body__input" oninput="javascript:entry.bodyChanged()" rownum=6>{{content}}</textarea>
+                </div>
+                <div class="entry_save">
+                    <button class="entry_save__button" onclick="javascript:entry.save()">Save</button>
+                </div>
+                <div class="entry_preview">
+                </div>
+            </div>
+        </script>
+
+        <script id="t-view" type="x-tmpl-mustache">
+            <div class="view">
+                <h3>{{title}}</h3>
+                <div class="view_toolbar">
+                    <a class="view_toolbar__edit" href="javascript:nav.go('/edit/{{n}}')">edit</a>
+                    <a class="view_toolbar__delete" href="javascript:main.deleteEntry({{n}})">delete</a>
+                </div>
+                <div class="view_body">
+                    {{{content}}}
+                </div>
+
+                <div class="view_date">
+                    {{date}}
+                </div>
+                <div class="view_tags">
+                    <div class="tag-list">
+                        {{#tags}}
+                            <span class="tag-list__tag">{{.}}</span>
+                        {{/tags}}
+                    </div>
+                </div>
+
+            </div>
+        </script>
+
+        <script id="t-login" type="x-tmpl-mustache">
+            <div class="login">
+                <h3>Hi there!</h3>
+                <table>
+                    <tr>
+                        <td>Base:</td>
+                        <td><input id="d-login-base" name="d-login-base" class="login__base" autocomplete="on"></td>
+                    </tr>
+                    <tr>
+                        <td>Code:</td>
+                        <td><input class="login__code" type="password" autocomplete="off" onkeyup="if (event.keyCode == 13) main.login();"></td>
+                    </tr>
+                    <tr>
+                        <td><button class="login__submit" onclick="main.login()">Submit</button></td>
+                    </tr>
+                </table>
+            </div>
+        </script>
+
+        <script type="application/javascript">
+            nav.go('/', {nohistory: true});
+        </script>
+    </body>
+</html>

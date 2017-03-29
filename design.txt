@@ -1,0 +1,27 @@
+D is a list of entries, numbered from zero.
+with ability to view full list of entries + CRUD for individual entry.
+Every entry is simple HTML with some metadata attached:
+- created: creation timestamp
+- updated: last updated timestamp
+- title: title (to display in index)
+- tags: tags
+- deleted: deleted (by design, entries can't be deleted so we'll just flag em to do not display anymore)
+
+Storage:
+- we use no index file so it won't break :-)
+- root storage folder is /data/{root}/, where root is derived from primary encryption key.
+    this root folder should be created manually to 'register' new user.
+- every entry consists of two files: {encrypted-id} and {encrypted-id}-index, encrypted id
+    is simple number 0,1,2... encrypted by primary key.
+
+each entry is a separate file, stored as /data/{user key}/{encrypted entry id}
+D has index page, showing all entries
+
+Password derivation:
+1. apply bcrypt with salt '$2a$12$.12345678901234512345.'. i.e. 2^12 rounds, bcrypt result prefix as specified.
+2. take SHA512 of result and convert to hex string
+
+encryption is similar to
+openssl aes-256-cbc -e -k {key} -a
+to decrypt, use
+ openssl aes-256-cbc -d -k {key} -a
