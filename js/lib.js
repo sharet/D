@@ -5,8 +5,8 @@
  *
  * @param url url
  * @param method http method
- * @param data string or json request body
- * @returns {Promise<string>} return response body or fails with string or Error
+ * @param [data] string or json request body
+ * @returns {Promise<{text: string, status: number}>} return response body or fails with string or Error
  */
 function httpplain(url, method, data) {
     var r = new XMLHttpRequest();
@@ -14,9 +14,12 @@ function httpplain(url, method, data) {
     return new Promise(function(resolve, reject) {
 
         r.onreadystatechange = function() {
-            if (r.readyState == 4) {
-                if (r.status >= 200 && r.status < 300) {
-                    resolve(r.responseText);
+            if (r.readyState === 4) {
+                if (r.status > 0) {
+                    resolve({
+                        text: r.responseText,
+                        status: r.status
+                    });
                 } else { // e.g sleep
                     reject(r.responseText);
                 }
@@ -33,18 +36,41 @@ function httpplain(url, method, data) {
     })
 }
 
+/**
+ *
+ * @param url
+ * @returns {Promise<string>}
+ */
 function davget(url) {
-    return httpplain(url, 'GET')
+    return httpplain(url, 'GET').then(textAndStatus => {
+        if (textAndStatus.status >= 300)
+            throw new Error('' + textAndStatus.status);
+        else
+            return textAndStatus.text;
+    })
+}
+
+/**
+ *
+ * @param url
+ * @returns {Promise<{text: string, status: number}>}
+ */
+function davgetRaw(url) {
+    return httpplain(url, 'GET');
 }
 
 /**
  *
  * @param url
  * @param data string or js object (serialized as json)
- * @returns {Promise<unit>}
+ * @returns {Promise<void>}
  */
 function davput(url, data) {
-    return httpplain(url, 'PUT', data)
+    return httpplain(url, 'PUT', data).then(textAndStatus => {
+        if (textAndStatus.status >= 300)
+            throw new Error('' + textAndStatus.status);
+
+    })
 }
 
 function formatDate(ts) {
@@ -69,33 +95,46 @@ function formatDate(ts) {
  */
 function runParallel(runJob, n) {
     return new Promise((resolve, reject) => {
+        if (n <= 0) {
+            reject("n <= 0");
+            return;
+        }
+
         var running = 0;
         var finish = false;
         var result = [];
+        var errors = [];
 
         function loop() {
 
             while (running < n && !finish) {
-                var p = runJob();
+                var p;
+                try {
+                    p = runJob();
+                } catch (e) {
+                    p = Promise.reject(e);
+                }
                 running += 1;
 
                 if (p) {
-                    p.catch(e => {
-                        return e;
-                    }).then(r => {
-                        result.push(r);
+                    const ix = result.length;
+                    result.push(null);
+                    p.then(r => {
+                        result[ix] = r;
+                    }).catch(e => {
+                        errors.push({ix: ix, error: e});
+                    }).finally(() => {
                         running -= 1;
-                        if (finish && running == 0) {
-                            resolve(result);
+                        if (finish && running === 0) {
+                            if (errors.length > 0) reject(errors); else resolve(result);
                         }
-
                         loop();
                     });
                 } else {
                     running -= 1;
                     finish = true;
-                    if (running == 0) {
-                        resolve(result);
+                    if (running === 0) {
+                        if (errors.length > 0) reject(errors); else resolve(result);
                     }
                 }
             }

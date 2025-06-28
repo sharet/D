@@ -1,5 +1,6 @@
 var main = main || (function() {
     var index = false;
+    var logoutAt = 0;
 
     /**
      * Load diary index
@@ -12,35 +13,43 @@ var main = main || (function() {
         var foundEnd = false;
         var i = 0;
         return runParallel(() => {
-            var p = (function(i) {
-                if (foundEnd) return false;
+            const n = i++;
+            if (foundEnd) return false;
 
-                return davget(auth.entryIndexUrl(i)).then(data => {
+            return davgetRaw(auth.entryIndexUrl(n)).then(textAndStatus => {
+                const data = textAndStatus.text;
+                const status = textAndStatus.status;
+
+                if (status === 404) {
+                    foundEnd = true;
+                } else if (status >= 300) {
+                    throw new Error('' + status);
+                } else {
                     var r = JSON.parse(auth.decrypt(data));
-                    r.n = i;
+                    r.n = n;
 
-                    while (i >= result.length) {
+                    while (n >= result.length) {
                         result.push(undefined);
                     }
-                    result[i] = r;
+                    result[n] = r;
                     loaded += 1;
                     if (loadCallback)
                         loadCallback(loaded);
+                }
 
-                }, () => {
-                    //reached end of index
-                    foundEnd = true;
-                });
-            })(i);
-            i += 1;
-            return p;
+            }, () => {
+                //reached end of index
+                foundEnd = true;
+            });
         }, 10).then(() => {
             index = result;
             index.sort((a, b) => a.timestamp < b.timestamp);
+            return index;
         });
     }
 
     function writeEntry(ix, body, n) {
+        userAction();
         if (n > index.length || n < 0) {
             return Promise.reject(new Error("Attempting to write entry #" + n + " but next available is " + index.length))
         }
@@ -69,6 +78,7 @@ var main = main || (function() {
     }
 
     function deleteEntry(n) {
+        userAction();
         if (n >= index.length || n < 0 || isNaN(n) || typeof n != "number") {
             alert("Attempting to delete entry #" + n + " but max available is " + (index.length - 1));
             return;
@@ -138,6 +148,7 @@ var main = main || (function() {
                     }
                     document.getElementsByClassName('toolbar')[0].style.display = 'block';
                     loginFormElements.forEach(e => e.disabled = false);
+                    logoutAt = new Date().getTime() + 1000 * 60 * 10;
                     return nav.go('/');
                 });
             }).catch(wtf => {
@@ -194,10 +205,33 @@ var main = main || (function() {
     }
 
     function reloadIndex() {
+        userAction();
         index = false;
         nav.go('/');
     }
 
+    function userAction() {
+        logoutAt = new Date().getTime() + 1000 * 60 * 10;
+    }
+
+    function logoutInMin() {
+        if (logoutAt === 0) return Infinity;
+        return Math.floor((logoutAt - new Date().getTime() + 60 * 1000 - 1) / 1000 / 60);
+    }
+
+    function logoutTimerTick() {
+        let uiElem = document.getElementsByClassName('toolbar__logout_min')[0];
+        if (uiElem) {
+            uiElem.innerHTML = '' + logoutInMin();
+        }
+        if (logoutInMin() <= 0) {
+            logout();
+            logoutAt = 0;
+        }
+        setTimeout(logoutTimerTick, 1000);
+    }
+
+    logoutTimerTick();
 
     return {
         index: function() {
@@ -209,6 +243,8 @@ var main = main || (function() {
         getKnownTags: getKnownTags,
         login: login,
         logout: logout,
-        reloadIndex: reloadIndex
+        reloadIndex: reloadIndex,
+        userAction: userAction,
+        logoutInMin: logoutInMin
     }
 })();

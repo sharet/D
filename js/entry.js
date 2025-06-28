@@ -1,48 +1,54 @@
 var entry = entry || (function() {
     var n;
-    var useHtmlMode;
 
     function newEntry() {
-        useHtmlMode = false;
+        main.userAction();
         nav.render("entry", {
             pageTitle: "New entry",
             title: "Untitled",
             content: "",
             knownTags: main.getKnownTags()
         });
-        updateButtons();
         n = main.index().length;
         return Promise.resolve()
     }
 
     function editEntry(n_) {
-        useHtmlMode = true;
+        main.userAction();
         n = n_;
         var index = main.index()[n_];
 
         return davget(auth.entryUrl(n_)).then(body => {
+            let content = auth.decrypt(body);
+
+            if (content.split('<br>').length > 3) {
+                // legacy HTML
+                content = content
+                    .replace(/&lt;/g, "<")
+                    .replace(/&gt;/g, ">")
+                    .replace(/<br>\n/g, "  \n")
+                    .replace(/<br>/g, "  \n")
+            }
+
             nav.render("entry", {
                 pageTitle: "Edit entry",
                 title: index.title,
                 tags: index.tags.join(", "),
-                content: auth.decrypt(body),
+                content: content,
+                contentHtml: marked.parse(content),
                 knownTags: main.getKnownTags()
             });
-            updateButtons();
         });
     }
 
     function save() {
+        main.userAction();
         var title = document.getElementsByClassName("entry_title__input")[0].value;
         var body = document.getElementsByClassName("entry_body__input")[0].value;
         var tags = document.getElementsByClassName("entry_tags__input")[0].value;
         if (title.trim() == '') {
             alert("Title cannot be empty");
             return;
-        }
-
-        if (!useHtmlMode) {
-            body = toHtml(body);
         }
 
         tags = tags.split(",").map(t => t.trim()).filter(t => t.length > 0);
@@ -93,83 +99,21 @@ var entry = entry || (function() {
     }
 
     function bodyChanged() {
+        main.userAction();
         var body = document.getElementsByClassName("entry_body__input")[0].value;
         var preview = document.getElementsByClassName("entry_preview")[0];
-        if (useHtmlMode) {
-            preview.innerHTML = body
+        preview.innerHTML = marked.parse(body)
+    }
+
+    function addTag(s) {
+        main.userAction();
+        var tags = document.getElementsByClassName("entry_tags__input")[0].value;
+        if (tags.length === 0) {
+            tags = s
         } else {
-            preview.innerHTML = toHtml(body);
+            tags = tags + ", " + s
         }
-    }
-
-    function onP() {
-        var f = document.getElementsByClassName('entry_body__input')[0];
-        insertAtCursor(f, "<p>\n");
-        bodyChanged();
-    }
-
-    function onPre() {
-        var f = document.getElementsByClassName('entry_body__input')[0];
-        insertAtCursor(f, "<pre>\n</pre>");
-        bodyChanged();
-    }
-
-    function onHtmlMode() {
-        var f = document.getElementsByClassName('entry_body__input')[0];
-        f.value = toHtml(f.value);
-        useHtmlMode = true;
-        bodyChanged();
-        updateButtons();
-    }
-
-    function onTxtMode() {
-        var f = document.getElementsByClassName('entry_body__input')[0];
-        f.value = toText(f.value);
-        useHtmlMode = false;
-        bodyChanged();
-        updateButtons();
-    }
-
-    function toHtml(s) {
-        return s
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/\n/g, "<br>\n")
-    }
-
-    function toText(s) {
-        return s
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .replace(/<br>\n/g, "\n")
-            .replace(/<br>/g, "\n")
-    }
-
-    function insertAtCursor(myField, myValue) {
-        //IE support
-        if (document.selection) {
-            myField.focus();
-            var sel = document.selection.createRange();
-            sel.text = myValue;
-        }
-        //MOZILLA and others
-        else if (myField.selectionStart || myField.selectionStart == '0') {
-            var startPos = myField.selectionStart;
-            var endPos = myField.selectionEnd;
-            myField.value = myField.value.substring(0, startPos)
-                + myValue
-                + myField.value.substring(endPos, myField.value.length);
-            myField.selectionStart = startPos + myValue.length;
-            myField.selectionEnd = startPos + myValue.length;
-        } else {
-            myField.value += myValue;
-        }
-    }
-
-
-    function updateButtons() {
-        document.getElementsByClassName('entry_toolbar_html')[0].disabled = useHtmlMode;
-        document.getElementsByClassName('entry_toolbar_txt')[0].disabled = !useHtmlMode;
+        document.getElementsByClassName("entry_tags__input")[0].value = tags;
     }
 
     return {
@@ -177,9 +121,6 @@ var entry = entry || (function() {
         editEntry: editEntry,
         save: save,
         bodyChanged: bodyChanged,
-        onP: onP,
-        onPre: onPre,
-        onHtmlMode: onHtmlMode,
-        onTxtMode: onTxtMode
+        addTag: addTag
     }
 })();

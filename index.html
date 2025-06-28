@@ -11,13 +11,14 @@
         <div class="toolbar" style="display: none">
             <a class="toolbar__index" href="javascript:nav.go('/')">Index</a>
             <a class="toolbar__newentry" href="javascript:nav.go('/new')">New entry</a>
-            <a class="toolbar__logout" href="javascript:main.logout()">Logout</a>
+            <a class="toolbar__logout" href="javascript:main.logout()">Logout in <span class="toolbar__logout_min">10</span> min</a>
         </div>
         <div class="main"></div>
 
         <script type="application/javascript" src="js/mustache.js"></script>
         <script type="application/javascript" src="js/bcrypt.js"></script>
         <script type="application/javascript" src="js/crypto-js.js"></script>
+        <script type="application/javascript" src="js/marked.umd.js"></script>
         <script type="application/javascript" src="js/lib.js"></script>
         <script type="application/javascript" src="js/auth.js"></script>
         <script type="application/javascript" src="js/nav.js"></script>
@@ -94,14 +95,8 @@
                 </div>
                 <div class="tag-list">
                     {{#knownTags}}
-                    <span class="tag-list__tag">{{.}}</span>
+                    <span class="tag-list__tag" onclick="entry.addTag(this.innerText)">{{.}}</span>
                     {{/knownTags}}
-                </div>
-                <div class="entry_toolbar">
-                    <button class="entry_toolbar_p" onclick="javascript:entry.onP()">&lt;p&gt;</button>
-                    <button class="entry_toolbar_pre" onclick="javascript:entry.onPre()">&lt;pre&gt;</button>
-                    <button class="entry_toolbar_html" onclick="javascript:entry.onHtmlMode()">HTML mode</button>
-                    <button class="entry_toolbar_txt" onclick="javascript:entry.onTxtMode()">TXT mode</button>
                 </div>
                 <div class="entry_body">
                     <textarea class="entry_body__input" oninput="javascript:entry.bodyChanged()" rownum=6>{{content}}</textarea>
@@ -109,8 +104,7 @@
                 <div class="entry_save">
                     <button class="entry_save__button" onclick="javascript:entry.save()">Save</button>
                 </div>
-                <div class="entry_preview">
-                </div>
+                <div class="entry_preview">{{{contentHtml}}}</div>
             </div>
         </script>
 
